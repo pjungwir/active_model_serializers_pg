@@ -1,0 +1,21 @@
+language: ruby
+sudo: false
+cache: bundler
+
+rvm:
+- 2.4.9
+- 2.5.7
+- 2.6.5
+
+gemfile:
+  - gemfiles/Gemfile.activerecord-5.0.x
+  - gemfiles/Gemfile.activerecord-5.1.x
+  - gemfiles/Gemfile.activerecord-5.2.x
+
+env: DATABASE_URL=postgres://localhost/travis RUBYOPT=-W0
+
+before_script:
+- bundle exec rake db:migrate
+
+addons:
+  postgresql: '9.4'
