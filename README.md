@@ -6,7 +6,7 @@ This gem adds support for Rails 5 and AMS 0.10.
 In addition we provide output in [JSON:API](https://jsonapi.org/) format.
 (I'd like to add normal JSON output too, so let me know if that would be helpful to you.)
 
-Building your JSON is Postgres can reduce your response time 10-100x.
+Building your JSON in Postgres can reduce your response time 10 &ndash; 100x.
 You skip instantiating thousands of Ruby objects (and garbage collecting them later),
 and Postgres can generate the JSON far more quickly than AMS.
 
@@ -45,6 +45,16 @@ You could also turn it on for everything but then set `adapter: :json_api` for a
 
 Note this gem also respects `ActiveModelSerializers.config.key_transform = :dash`, if you are using that.
 
+### Supports
+
+Here are some other details we support:
+
+- `belongs_to`, `has_one`, and `has_many` associations.
+- If you serialize an `enum` you get the string values, not integers.
+- You can serialize an `alias`'d association.
+- We preserve SQL ordering from a model's `default_scope`.
+- We preserve SQL ordering attached to an association.
+
 ### Methods in Serializers and Models
 
 If you are using methods to compute properties for your JSON responses
@@ -68,6 +78,26 @@ There is no instance of MyModel created so sql computed properties needs to be
 a class method. Right now, this string is used as a SQL literal, so be sure to
 *not* use untrusted values in the return value.
 
+Similarly we also look for a `foo__sql` method
+for relationships that aren't ActiveRecord associations.
+It must return an `ActiveRecord::Relation` (not a `String`),
+and we will run its SQL inside a `LEFT OUTER JOIN LATERAL`
+(so it has access to the parent table). For example:
+
+```ruby
+class Book < ActiveRecord::Base
+
+  def essays_by_same_author
+    Essay.where(author_id: author_id)
+  end
+
+  def self.essays_by_same_author__sql
+    Essay.where("books.author_id = essays.author_id")
+  end
+
+end
+```
+
 ## Developing
 
 To work on active\_model\_serializers\_pg locally, follow these steps:
@@ -88,6 +118,18 @@ Commands for building/releasing/installing:
 * `rake build`
 * `rake install`
 * `rake release`
+
+### TODO
+
+Here are things I'd like to support but don't yet:
+
+- Use Arel to generate all the SQL.
+- More support of custom scopes attached to associations.
+- Add a non-JSON:API adapter, for traditional JSON output.
+- Have all the tests verify they output the asme JSON as the built-in AMS serializers.
+- Look at AMS's own tests for more features we should support.
+- HABTM associations?
+- `has_many through:` associations?
 
 ## Authors
 
