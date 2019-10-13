@@ -82,6 +82,7 @@ namespace :db do
     ActiveRecord::Base.connection.create_table :notes, force: true do |t|
       t.string   "name"
       t.string   "content"
+      t.integer  "state", null: false, default: 0
       t.datetime "created_at"
       t.datetime "updated_at"
     end

@@ -61,12 +61,21 @@ class Note < ActiveRecord::Base
   has_many :sorted_tags
   has_many :custom_sorted_tags, lambda { order(:name) }, class_name: 'Tag'
   has_many :popular_tags, lambda { where(popular: true) }, class_name: 'Tag'
+  Draft     = :draft
+  Published = :published
+  Deleted   = :deleted
+  enum state: [Draft, Published, Deleted]
 end
 
 class NotesController < TestController; end
 
 class NoteSerializer < ActiveModel::Serializer
   attributes :content, :name
+  has_many   :tags
+end
+
+class NoteWithStateSerializer < ActiveModel::Serializer
+  attributes :content, :name, :state
   has_many   :tags
 end
 

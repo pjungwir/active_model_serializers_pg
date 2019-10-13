@@ -468,6 +468,35 @@ describe 'ArraySerializer' do
     end
   end
 
+  context 'with enums' do
+    let(:relation)   { Note.order(:id) }
+    let(:controller) { NotesController.new }
+    let(:options)    { { each_serializer: NoteWithStateSerializer, fields: { note: [:name, :state] } } }
+
+    before do
+      @note1 = Note.create content: 'Test', name: 'Title 1', state: Note::Published
+      @note2 = Note.create content: 'Test', name: 'Title 2', state: Note::Deleted
+    end
+
+    it 'converts enum ints to strings' do
+      json_expected = {
+        data: [
+          {
+            id: @note1.id.to_s,
+            type: 'notes',
+            attributes: { name: 'Title 1', state: 'published' },
+          },
+          {
+            id: @note2.id.to_s,
+            type: 'notes',
+            attributes: { name: 'Title 2', state: 'deleted' },
+          }
+        ]
+      }.to_json
+      expect(json_data).to eq json_expected
+    end
+  end
+
   context 'support for include_[attrbute]' do
     let(:relation)   { User.all }
     let(:controller) { UsersController.new }
@@ -627,8 +656,6 @@ describe 'ArraySerializer' do
   pending 'obeys serializer option in has_many relationship'  # Does AMS 0.10 still support this?
 
   pending 'obeys :include option in serializer association'   # Does AMS 0.10 still support this?
-
-  pending 'serializes enums'
 
   pending 'uses __sql methods for relationships'
 end
