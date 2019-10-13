@@ -116,6 +116,7 @@ end
 
 class Tag < ActiveRecord::Base
   belongs_to :note
+  alias :aliased_note :note
 end
 
 class SortedTag < Tag
@@ -147,6 +148,11 @@ end
 class TagWithNoteSerializer < ActiveModel::Serializer
   attributes :id, :name
   has_one :note
+end
+
+class TagWithAliasedNoteSerializer < ActiveModel::Serializer
+  attributes :name
+  has_one :aliased_note
 end
 
 class User < ActiveRecord::Base

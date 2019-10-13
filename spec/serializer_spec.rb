@@ -172,6 +172,29 @@ describe 'ArraySerializer' do
       }.to_json
       expect(json_data).to eq json_expected
     end
+  end
+
+  context 'with aliased association' do
+    let(:relation)   { Tag.first }
+    let(:controller) { TagsController.new }
+    let(:options)    { { serializer: TagWithAliasedNoteSerializer } }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note, popular: true
+    end
+
+    it 'generates the proper json output' do
+      json_expected = {
+        data: {
+          id: @tag.id.to_s,
+          type: 'tags',
+          attributes: { name: 'My tag' },
+          relationships: { aliased_note: { data: {id: @note.id.to_s, type: 'notes'} } }
+        }
+      }.to_json
+      expect(json_data).to eq json_expected
+    end
 
   end
 
@@ -604,8 +627,6 @@ describe 'ArraySerializer' do
   pending 'obeys serializer option in has_many relationship'  # Does AMS 0.10 still support this?
 
   pending 'obeys :include option in serializer association'   # Does AMS 0.10 still support this?
-
-  pending 'figures out aliased associations'
 
   pending 'serializes enums'
 
