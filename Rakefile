@@ -86,9 +86,24 @@ namespace :db do
       t.datetime "updated_at"
     end
 
+    ActiveRecord::Base.connection.create_table :long_notes, force: true do |t|
+      t.string   "name"
+      t.text     "long_content"
+      t.datetime "created_at"
+      t.datetime "updated_at"
+    end
+
     ActiveRecord::Base.connection.create_table :tags, force: true do |t|
       t.integer  "note_id"
       t.string   "name"
+      t.boolean  "popular"
+      t.datetime "created_at"
+      t.datetime "updated_at"
+    end
+
+    ActiveRecord::Base.connection.create_table :long_tags, force: true do |t|
+      t.integer  "long_note_id"
+      t.string   "long_name"
       t.boolean  "popular"
       t.datetime "created_at"
       t.datetime "updated_at"

@@ -70,6 +70,17 @@ class NoteSerializer < ActiveModel::Serializer
   has_many   :tags
 end
 
+class LongNote < ActiveRecord::Base
+  has_many :long_tags
+end
+
+class LongNotesController < TestController; end
+
+class LongNoteSerializer < ActiveModel::Serializer
+  attributes :long_content, :name
+  has_many :long_tags
+end
+
 class ShortTagSerializer < ActiveModel::Serializer
   attributes :id, :name
 end
@@ -110,6 +121,15 @@ end
 class SortedTag < Tag
   belongs_to :note
   default_scope { order(:name) }
+end
+
+class LongTag < ActiveRecord::Base
+  belongs_to :long_note
+end
+
+class LongTagSerializer < ActiveModel::Serializer
+  attributes :long_name
+  belongs_to :long_note
 end
 
 class TagWithNote < Tag
@@ -172,7 +192,6 @@ DatabaseCleaner.strategy = :deletion
 RSpec.configure do |config|
   config.before(:each) do
     DatabaseCleaner.start
-    # FactoryBot.lint
   end
 
   config.after(:each) do

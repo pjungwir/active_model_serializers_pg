@@ -134,6 +134,45 @@ describe 'ArraySerializer' do
       }.to_json
       expect(json_data).to eq json_expected
     end
+
+  end
+
+  context 'with dasherized keys and types' do
+    let(:relation)   { LongNote.where(name: 'Title').first }
+    let(:controller) { LongNotesController.new }
+    let(:options)    { { include: ['long_tags'] } }
+
+    before do
+      @note = LongNote.create long_content: 'Test', name: 'Title'
+      @tag = LongTag.create long_name: 'My tag', long_note: @note, popular: true
+      @old_key_setting = ActiveModelSerializers.config.key_transform
+      ActiveModelSerializers.config.key_transform = :dash
+    end
+
+    after do
+      ActiveModelSerializers.config.key_transform = @old_key_setting
+    end
+
+    it 'generates the proper json output' do
+      json_expected = {
+        data: {
+          id: @note.id.to_s,
+          type: 'long-notes',
+          attributes: { name: 'Title', 'long-content' => 'Test' },
+          relationships: { 'long-tags': { data: [{id: @tag.id.to_s, type: 'long-tags'}] } }
+        },
+        included: [
+          {
+            id: @tag.id.to_s,
+            type: 'long-tags',
+            attributes: { 'long-name' => 'My tag' },
+            relationships: { 'long-note' => { data: { id: @note.id.to_s, type: 'long-notes' } } },
+          }
+        ]
+      }.to_json
+      expect(json_data).to eq json_expected
+    end
+
   end
 
   context 'serialize single record with custom serializer' do
@@ -307,7 +346,6 @@ describe 'ArraySerializer' do
     end
 
     it 'generates the proper json output for the serializer' do
-      puts json_data
       expect(json_data).to eq @json_expected
     end
 
@@ -565,13 +603,9 @@ describe 'ArraySerializer' do
 
   pending 'obeys serializer option in has_many relationship'  # Does AMS 0.10 still support this?
 
-  pending 'obeys overall :include option'
-
   pending 'obeys :include option in serializer association'   # Does AMS 0.10 still support this?
 
   pending 'figures out aliased associations'
-
-  pending 'makes dasherized keys and types'
 
   pending 'serializes enums'
 
