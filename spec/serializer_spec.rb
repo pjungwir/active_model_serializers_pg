@@ -303,7 +303,21 @@ describe 'ArraySerializer' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      expect(relation).not_to receive(:to_a)
+      # It would be nice to do this instead:
+      #
+      #     expect(relation).not_to receive(:load)
+      #
+      # or
+      #
+      #     expect(relation).not_to receive(:records)
+      #
+      # But that causes an infinite loop because rspec works by raising an exception,
+      # and ActiveRecord notices that and wants to print an error message,
+      # calling `inspect` on the Relation, which tries to load the relation, which....
+      # The test still fails, but not in an articulate or informative way.
+      # TODO: We could probably write our own customer matcher to work around that,
+      # but this does the job for now:
+      expect(ActiveModelSerializers::Adapter::JsonApiPg).not_to receive(:warn_about_collection_serializer)
       json_data
     end
   end
@@ -335,7 +349,7 @@ describe 'ArraySerializer' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      expect(relation).not_to receive(:to_a)
+      expect(ActiveModelSerializers::Adapter::JsonApiPg).not_to receive(:warn_about_collection_serializer)
       json_data
     end
   end
@@ -373,7 +387,7 @@ describe 'ArraySerializer' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      expect(relation).not_to receive(:to_a)
+      expect(ActiveModelSerializers::Adapter::JsonApiPg).not_to receive(:warn_about_collection_serializer)
       json_data
     end
   end
@@ -415,7 +429,7 @@ describe 'ArraySerializer' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      expect(relation).not_to receive(:to_a)
+      expect(ActiveModelSerializers::Adapter::JsonApiPg).not_to receive(:warn_about_collection_serializer)
       json_data
     end
   end
@@ -434,7 +448,7 @@ describe 'ArraySerializer' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      expect(relation).not_to receive(:to_a)
+      expect(ActiveModelSerializers::Adapter::JsonApiPg).not_to receive(:warn_about_collection_serializer)
       json_data
     end
   end
@@ -463,7 +477,7 @@ describe 'ArraySerializer' do
     end
 
     it 'does not instantiate ruby objects for relations' do
-      expect(relation).not_to receive(:to_a)
+      expect(ActiveModelSerializers::Adapter::JsonApiPg).not_to receive(:warn_about_collection_serializer)
       json_data
     end
   end

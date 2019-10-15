@@ -1,10 +1,13 @@
 require 'active_model_serializers'
 
+# We don't really need this
+# because we try to inject our own CollectionSerializer,
+# but keeping it lets us give a nice warning message
+# instead of simply crashing:
 module ActiveModel
   class Serializer
     class CollectionSerializer
       def element_serializer
-        # TODO: This is probably not set every time
         options[:serializer]
       end
     end
@@ -54,6 +57,15 @@ module ActiveModelSerializers
         sql = JsonApiPgSql.new(serializer, relation, instance_options, opts)
         sql = sql.to_sql
         sql
+      end
+
+      def self.warn_about_collection_serializer
+          msg = "You are using an ordinary AMS CollectionSerializer with the json_api_pg adapter, which probably means Rails is pointlessly loading all your ActiveRecord instances *and* running the build JSON-building query in Postgres."
+          if Object.const_defined? 'Rails'
+            Rails.logger.warn msg
+          else
+            puts "WARN: #{msg}"
+          end
       end
 
     end
@@ -317,12 +329,15 @@ class JsonApiPgSql
     # Make a JsonThing for everything,
     # cached as the full_name:
 
-    # User.where is a Relation, but plain User is not:
+    # Watch out: User.where is a Relation, but plain User is not:
     ar_class = ActiveRecord::Relation === base_relation ? base_relation.klass : base_relation
 
     case base_serializer
     when ActiveModel::Serializer::CollectionSerializer
-      # base_serializer = base_serializer.to_a.first
+      ActiveModelSerializers::Adapter::JsonApiPg.warn_about_collection_serializer
+      base_serializer = base_serializer.element_serializer
+      @many = true
+    when ActiveModelSerializersPg::CollectionSerializer
       base_serializer = base_serializer.element_serializer
       @many = true
     else
