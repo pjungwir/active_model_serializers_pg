@@ -15,6 +15,7 @@ module ActiveModelSerializersPg
     include Enumerable
     # PATCHED: implement this below so we don't need @serializers
     # delegate :each, to: :@serializers
+    delegate :each, to: :serializers
 
     attr_reader :object, :root
 
@@ -22,8 +23,13 @@ module ActiveModelSerializersPg
       @object                  = resources
       @options                 = options
       @root                    = options[:root]
-      # PATCHED: We don't want to iterate unless we have to:
-      # @serializers             = serializers_from_resources
+      # PATCHED: We don't want to materialize a Relation by iterating unless we have to.
+      # On the other hand, if we don't have a serializer we *do* want to `throw :no_serializer`
+      # right away. That should only happen for basic types (like a String or Hash),
+      # so we act lazy when we have a Relation, and eager otherwise:
+      unless resources.is_a? ActiveRecord::Relation
+        @serializers = serializers_from_resources
+      end
     end
 
     # PATCH: Give ourselves access to the serializer for the individual elements:
@@ -76,25 +82,17 @@ module ActiveModelSerializersPg
         object.respond_to?(:size)
     end
 
-    # PATCHED: Add a replacement to `each` so we don't change the interface:
-    def each
-      Rails.logger.debug caller.join("\n")
-      Enumerator.new do |y|
-        serializers_from_resources.each do |ser|
-          y.yield ser
-        end
-      end
-    end
-
     protected
 
-    attr_reader :serializers, :options
+    attr_reader :options
+
+    def serializers
+      @serializers ||= serializers_from_resources
+    end
 
     private
 
     def serializers_from_resources
-      puts "options here"
-      pp options
       serializer_context_class = options.fetch(:serializer_context_class, ActiveModel::Serializer)
       object.map do |resource|
         serializer_from_resource(resource, serializer_context_class, options)
