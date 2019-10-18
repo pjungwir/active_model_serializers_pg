@@ -113,6 +113,31 @@ describe 'ArraySerializer' do
     end
   end
 
+  context 'serialize an array instead of a relation' do
+    let(:relation)   { [Note.where(name: 'Title').first] }
+    let(:controller) { NotesController.new }
+    let(:options)    { }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note, popular: true
+    end
+
+    it 'generates the proper json output' do
+      json_expected = {
+        data: [
+          {
+            id: @note.id.to_s,
+            type: 'notes',
+            attributes: { name: 'Title', content: 'Test' },
+            relationships: { tags: { data: [{id: @tag.id.to_s, type: 'tags'}] } }
+          }
+        ]
+      }.to_json
+      expect(json_data).to eq json_expected
+    end
+  end
+
   context 'serialize an empty array' do
     let(:relation)   { [] }
     let(:controller) { NotesController.new }
@@ -145,7 +170,6 @@ describe 'ArraySerializer' do
       }.to_json
       expect(json_data).to eq json_expected
     end
-
   end
 
   context 'with dasherized keys and types' do
