@@ -8,7 +8,7 @@ module ActiveModel
   class Serializer
     class CollectionSerializer
       def element_serializer
-        options[:serializer]
+        options && options[:serializer]
       end
     end
   end
@@ -23,7 +23,16 @@ module ActiveModelSerializers
       end
 
       def to_json(options={})
-        connection.select_value serializer_sql
+        if relation.nil?
+          ret = { data: [] }
+          if includes.any?
+            # TODO: Can included ever be non-empty when the main data is empty?
+            ret[:included] = []
+          end
+          ret.to_json
+        else
+          connection.select_value serializer_sql
+        end
       end
 
       def relation
@@ -31,6 +40,10 @@ module ActiveModelSerializers
       end
 
       private
+
+      def includes
+        instance_options && instance_options[:include] || []
+      end
 
       def connection
         @connection ||= relation.connection
@@ -42,8 +55,12 @@ module ActiveModelSerializers
         when ActiveRecord::Relation
           o
         when Array
-          # TODO: determine what class it is, even if the array is empty
-          o.first.class.where(id: o.map(&:id))
+          o2 = o.first
+          if o2.nil?
+            nil
+          else
+            o2.class.where(id: o.map(&:id))
+          end
         when ActiveRecord::Base
           o.class.where(id: o.id)
         else

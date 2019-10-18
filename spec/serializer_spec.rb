@@ -113,6 +113,17 @@ describe 'ArraySerializer' do
     end
   end
 
+  context 'serialize an empty array' do
+    let(:relation)   { [] }
+    let(:controller) { NotesController.new }
+    let(:options)    { }
+
+    it 'generates the proper json output' do
+      json_expected = { data: [] }.to_json
+      expect(json_data).to eq json_expected
+    end
+  end
+
   context 'serialize singular record' do
     let(:relation)   { Note.where(name: 'Title').first }
     let(:controller) { NotesController.new }
