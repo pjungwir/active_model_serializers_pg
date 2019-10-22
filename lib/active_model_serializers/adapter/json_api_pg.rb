@@ -109,7 +109,7 @@ end
 # I think think older versions of Rails even used that internally,
 # but nowadays the method names use "reflection".)
 class JsonThing
-  attr_reader :ar_class, :full_name, :name, :serializer, :serializer_options, :json_key, :json_type, :reflection, :parent, :cte_name
+  attr_reader :ar_class, :full_name, :name, :serializer, :serializer_options, :json_key, :json_type, :reflection, :parent, :cte_name, :jbs_name
   delegate :table_name, :primary_key, to: :ar_class
   delegate :foreign_key, :belongs_to?, :has_many?, :has_one?, to: :reflection
 
@@ -130,6 +130,7 @@ class JsonThing
     @parent = parent_json_thing
 
     @cte_name = _cte_name
+    @jbs_name = _jbs_name
     @sql_methods = {}
   end
 
@@ -196,8 +197,36 @@ class JsonThing
     if parent.nil?
       't'
     else
-      "cte_#{Digest::SHA256.hexdigest(full_name).first(10)}"
+      "cte_#{_cte_name_human_part}_#{Digest::SHA256.hexdigest(full_name).first(10)}"
     end
+  end
+
+  # Each thing has bother a `cte_foo` CTE and a `jbs_foo` CTE.
+  # (jbs stands for "JSONBs" and is meant to take 3 chars like `cte`.)
+  # The former is just the relevant records,
+  # and the second builds the JSON object for each record.
+  # We need to split things into phases like this
+  # because of the JSON:API `relationships` item,
+  # which can contain references in *both directions*.
+  # In that case Postgres will object to our circular dependency.
+  # But with two phases, every jbs_* CTE only depends on cte_* CTEs.
+  def _jbs_name
+    if parent.nil?
+      't'
+    else
+      "jbs_#{_cte_name_human_part}_#{Digest::SHA256.hexdigest(full_name).first(10)}"
+    end
+  end
+
+  # Gets a more informative name for the CTE based on the include key.
+  # This makes reading the big SQL query easier, especially for debugging.
+  # Note that Postgres's max identifier length is 63 chars (unless you compile yourself),
+  # and we are spending 4+4+11=19 chars elsewhere on `rel_cte_XXX_1234567890`.
+  # So this method can't return more than 63-19=44 chars.
+  #
+  # Since we quote the CTE names, we don't actually need to remove dots in the name!
+  def _cte_name_human_part
+    @cte_name_human_part ||= full_name[0, 44]
   end
 
   def _sql_method(field)
@@ -440,7 +469,7 @@ class JsonApiPgSql
       refl = resource.reflection
       <<~EOQ
         '#{resource.json_key}',
-         jsonb_build_object(#{refl.include_data ? %Q{'data', rel_#{resource.cte_name}.j} : ''}
+         jsonb_build_object(#{refl.include_data ? %Q{'data', "rel_#{resource.cte_name}".j} : ''}
                             #{refl.include_data && refl.links.any? ? ',' : ''}
                             #{refl.links.any? ? %Q{'links',  jsonb_build_object(#{select_resource_relationship_links(resource, refl)})} : ''})
       EOQ
@@ -538,39 +567,51 @@ class JsonApiPgSql
       # e.g. buyer and seller for User.
       # But we could group those and union just them, or even better do a DISTINCT ON (id).
       # Since we don't get the id here that could be another CTE.
-      "UNION SELECT j FROM #{th.cte_name}"
+      %Q{UNION SELECT j FROM "#{th.jbs_name}"}
     }
   end
 
   def include_cte_join_condition(resource)
     parent = resource.parent
     if resource.belongs_to?
-      %Q{#{parent.cte_name}."#{resource.foreign_key}" = "#{resource.table_name}"."#{resource.primary_key}"}
+      %Q{"#{parent.cte_name}"."#{resource.foreign_key}" = "#{resource.table_name}"."#{resource.primary_key}"}
     elsif resource.has_many? or resource.has_one?
-      %Q{#{parent.cte_name}."#{parent.primary_key}" = "#{resource.table_name}"."#{resource.foreign_key}"}
+      %Q{"#{parent.cte_name}"."#{parent.primary_key}" = "#{resource.table_name}"."#{resource.foreign_key}"}
     else
       raise "not supported relationship: #{resource.full_name}"
     end
   end
 
+  # See note in _jbs_name method for why we split each thing into two CTEs.
   def include_cte(resource)
     # Sometimes options[:fields] has plural keys and sometimes singular,
     # so try both:
     parent = resource.parent
     <<~EOQ
       SELECT  DISTINCT ON ("#{resource.table_name}"."#{resource.primary_key}")
-              "#{resource.table_name}".*,
-              #{select_resource(resource)} AS j
+              "#{resource.table_name}".*
       FROM    "#{resource.table_name}"
-      JOIN    #{parent.cte_name}
+      JOIN    "#{parent.cte_name}"
       ON      #{include_cte_join_condition(resource)}
-      #{join_resource_relationships(resource)}
       ORDER BY "#{resource.table_name}"."#{resource.primary_key}"
     EOQ
   end
 
+  # See note in _jbs_name method for why we split each thing into two CTEs.
+  def include_jbs(resource)
+    <<~EOQ
+      SELECT  "#{resource.table_name}".*,
+              #{select_resource(resource)} AS j
+      FROM    "#{resource.cte_name}" AS "#{resource.table_name}"
+      #{join_resource_relationships(resource)}
+    EOQ
+  end
+
   def includes
-    @instance_options[:include] || []
+    @includes ||= (@instance_options[:include] || []).sort_by do |inc|
+      # Sort these by length so we never have bad foreign references in the CTEs:
+      inc.size
+    end
   end
 
   # Takes a dotted field name (not including the base resource)
@@ -589,8 +630,20 @@ class JsonApiPgSql
       # Be careful: inc might have dots:
       th = get_json_thing_from_base(inc)
       <<~EOQ
-        #{th.cte_name} AS (
+        "#{th.cte_name}" AS (
           #{include_cte(th)}
+        ),
+      EOQ
+    }.join("\n")
+  end
+
+  def include_jbsses
+    includes.map { |inc|
+      # Be careful: inc might have dots:
+      th = get_json_thing_from_base(inc)
+      <<~EOQ
+        "#{th.jbs_name}" AS (
+          #{include_jbs(th)}
         ),
       EOQ
     }.join("\n")
@@ -704,14 +757,15 @@ class JsonApiPgSql
         #{join_resource_relationships(base_resource)}
       ),
       #{include_ctes}
-      all_ctes AS (
+      #{include_jbsses}
+      all_jbsses AS (
         SELECT  '{}'::jsonb AS j
         WHERE   1=0
         #{include_selects.join("\n")}
       ),
       inc AS (
         SELECT  COALESCE(jsonb_agg(j), '[]') AS j
-        FROM    all_ctes
+        FROM    all_jbsses
       )
 			SELECT	jsonb_build_object('data', t2.j
                                  #{maybe_included})
