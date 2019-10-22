@@ -230,7 +230,29 @@ describe 'ArraySerializer' do
       }.to_json
       expect(json_data).to eq json_expected
     end
+  end
 
+  context 'with aliased attribute' do
+    let(:relation)   { Tag.first }
+    let(:controller) { TagsController.new }
+    let(:options)    { { serializer: TagWithAliasedNameSerializer } }
+
+    before do
+      @note = Note.create content: 'Test', name: 'Title'
+      @tag = Tag.create name: 'My tag', note: @note, popular: true
+    end
+
+    it 'generates the proper json output' do
+      json_expected = {
+        data: {
+          id: @tag.id.to_s,
+          type: 'tags',
+          attributes: { 'aliased_name' => 'My tag' },
+          relationships: { note: { data: {id: @note.id.to_s, type: 'notes'} } }
+        }
+      }.to_json
+      expect(json_data).to eq json_expected
+    end
   end
 
   context 'serialize single record with custom serializer' do

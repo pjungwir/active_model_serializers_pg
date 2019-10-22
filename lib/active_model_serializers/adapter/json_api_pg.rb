@@ -163,6 +163,15 @@ class JsonThing
     ]
   end
 
+  # Checks for alias_attribute and gets to the real attribute name.
+  def unaliased(field_name)
+    ret = field_name
+    while field_name = @ar_class.attribute_aliases[field_name.to_s]
+      ret = field_name
+    end
+    ret
+  end
+
   # TODO: tests
   def self.json_key(k)
     # TODO: technically the serializer could have an option overriding the default:
@@ -443,7 +452,7 @@ class JsonApiPgSql
     elsif resource.has_sql_method?(field)
       resource.sql_method(field)
     else
-      %Q{"#{resource.table_name}"."#{field}"}
+      %Q{"#{resource.table_name}"."#{resource.unaliased(field)}"}
     end
   end
 
