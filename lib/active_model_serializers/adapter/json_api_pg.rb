@@ -688,7 +688,7 @@ class JsonApiPgSql
     resource.serializer._attributes.select{|f|
       if ms.include? "include_#{f}?".to_sym
         ser = resource.serializer.new(nil, @options)
-        ser.send("include_#{f}?".to_sym) # TODO: call the method
+        ser.send("include_#{f}?".to_sym)
       else
         true
       end
@@ -702,7 +702,7 @@ class JsonApiPgSql
     resource.serializer._reflections.keys.select{|f|
       if ms.include? "include_#{f}?".to_sym
         ser = resource.serializer.new(nil, @options)
-        ser.send("include_#{f}?".to_sym) # TODO: call the method
+        ser.send("include_#{f}?".to_sym)
       else
         true
       end
