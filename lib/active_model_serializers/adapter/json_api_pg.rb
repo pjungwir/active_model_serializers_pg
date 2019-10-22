@@ -735,6 +735,9 @@ class JsonApiPgSql
 
   def _attribute_fields_for(resource)
     attrs = Set.new(serializer_attributes(resource))
+    # JSON:API always excludes the `id`
+    # even if it's part of the serializer:
+    attrs = attrs - [resource.primary_key.to_sym]
     fields_for(resource).select { |f| attrs.include? f }.to_a
   end
 

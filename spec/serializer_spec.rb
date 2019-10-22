@@ -25,7 +25,7 @@ describe 'ArraySerializer' do
           {
             id: @note.id.to_s,
             type: 'notes',
-            attributes: {id: @note.id, name: 'Title'},
+            attributes: {name: 'Title'},
             relationships: {tags: {data: [{id: @tag.id.to_s, type: 'tags'}]}},
           }
         ]
@@ -65,7 +65,7 @@ describe 'ArraySerializer' do
           {
             id: person.id.to_s,
             type: 'people',
-            attributes: { id: person.id, full_name: 'Test User', attendance_name: 'User, Test' },
+            attributes: { full_name: 'Test User', attendance_name: 'User, Test' },
           }
         ]
       }.to_json
@@ -80,7 +80,7 @@ describe 'ArraySerializer' do
           {
             id: person.id.to_s,
             type: 'people',
-            attributes: {id: person.id, full_name: 'Test User', attendance_name: 'ADMIN User, Test'}
+            attributes: {full_name: 'Test User', attendance_name: 'ADMIN User, Test'}
           }
         ]
       }.to_json
@@ -270,7 +270,7 @@ describe 'ArraySerializer' do
         data: {
           id: @note.id.to_s,
           type: 'notes',
-          attributes: { id: @note.id, name: 'Title' },
+          attributes: { name: 'Title' },
           relationships: { tags: { data: [{id: @tag.id.to_s, type: 'tags'}] } }
         }
       }.to_json
@@ -424,7 +424,7 @@ describe 'ArraySerializer' do
           {
             id: tag.id.to_s,
             type: 'tags',
-            attributes: { id: tag.id, name: 'My tag' },
+            attributes: { name: 'My tag' },
             relationships: { note: { data: { id: note.id.to_s, type: 'notes' } } },
           }
         ],
@@ -462,7 +462,7 @@ describe 'ArraySerializer' do
           {
             id: reviewer.id.to_s,
             type: 'users',
-            attributes: { id: reviewer.id, name: 'Peter' },
+            attributes: { name: 'Peter' },
             relationships: {
               offers: { data: [] },
               reviewed_offers: { data: [{id: offer.id.to_s, type: 'offers'}] },
@@ -471,7 +471,7 @@ describe 'ArraySerializer' do
           {
             id: user.id.to_s,
             type: 'users',
-            attributes: { id: user.id, name: 'John' },
+            attributes: { name: 'John' },
             relationships: {
               offers: { data: [{id: offer.id.to_s, type: 'offers'}] },
               reviewed_offers: { data: [] },
@@ -522,7 +522,7 @@ describe 'ArraySerializer' do
           {
             id: tag.id.to_s,
             type: 'tag_with_notes',
-            attributes: { id: tag.id, name: 'My tag' },
+            attributes: { name: 'My tag' },
             relationships: { note: { data: { id: note.id.to_s, type: 'notes' } } },
           }
         ]
@@ -581,7 +581,7 @@ describe 'ArraySerializer' do
           {
             id: @user.id.to_s,
             type: 'users',
-            attributes: {id: @user.id, name: 'John', mobile: '51111111'},
+            attributes: {name: 'John', mobile: '51111111'},
             relationships: {
               offers: {data: []},
               address: {data: {id: address.id.to_s, type: 'addresses'}},
@@ -601,7 +601,7 @@ describe 'ArraySerializer' do
           {
             id: @user.id.to_s,
             type: 'users',
-            attributes: {id: @user.id, name: 'John'},
+            attributes: {name: 'John'},
             relationships: {
               offers: {data: []},
               reviewed_offers: {data: []},
@@ -629,7 +629,7 @@ describe 'ArraySerializer' do
           {
             id: note.id.to_s,
             type: 'notes',
-            attributes: {id: note.id},
+            attributes: {},
             relationships: {
               sorted_tags: {
                 data: [
@@ -665,7 +665,7 @@ describe 'ArraySerializer' do
           {
             id: note.id.to_s,
             type: 'notes',
-            attributes: {id: note.id},
+            attributes: {},
             relationships: {
               custom_sorted_tags: {
                 data: [
