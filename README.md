@@ -31,6 +31,13 @@ Or install it yourself as:
 
     gem install active_model_serializers_pg
 
+### Migrations
+
+This gem depends on a SQL function to dasherize hstore/json/jsonb columns, so you must add its migration to your project and run it, like this:
+
+    rails g active_model_serializers_pg
+    rake db:migrate
+
 ## Usage
 
 You can enable in-Postgres serialization for everything by putting this in a Rails initializer:

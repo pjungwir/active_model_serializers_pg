@@ -209,6 +209,53 @@ describe 'ArraySerializer' do
     end
   end
 
+  context 'with dasherized json columns' do
+    let(:relation)   { Person.all }
+    let(:controller) { PeopleController.new }
+    let(:person)     {
+      Person.create first_name: 'Test',
+                    last_name: 'User',
+                    options:  { 'foo_foo': 'baz', bar: [{ 'jar_jar': 'binks' }] },
+                    prefs:    { 'foo_foo': 'baz', bar: [{ 'jar_jar': 'binks' }] },
+                    settings: { 'foo_foo': 'bar' }
+    }
+    let(:options)    { { each_serializer: PersonWithJsonSerializer } }
+
+    before do
+      @old_key_setting = ActiveModelSerializers.config.key_transform
+      ActiveModelSerializers.config.key_transform = :dash
+    end
+
+    after do
+      ActiveModelSerializers.config.key_transform = @old_key_setting
+    end
+
+    it 'generates the proper json output' do
+      json_expected = {
+        data: [
+          {
+            id: person.id.to_s,
+            type: 'people',
+            attributes: {
+              prefs: {
+                bar: [{ 'jar-jar' => 'binks'}],
+                'foo-foo' => 'baz',
+              },
+              options: {
+                bar: [{ 'jar-jar' => 'binks'}],
+                'foo-foo' => 'baz',
+              },
+              settings: {
+                'foo-foo' => 'bar'
+              },
+            },
+          }
+        ]
+      }.to_json
+      expect(json_data).to eq json_expected
+    end
+  end
+
   context 'with aliased association' do
     let(:relation)   { Tag.first }
     let(:controller) { TagsController.new }

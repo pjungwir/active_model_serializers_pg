@@ -72,9 +72,14 @@ namespace :db do
   task :migrate => :load_db_settings do
     ActiveRecord::Base.establish_connection
 
+    ActiveRecord::Base.connection.execute "CREATE EXTENSION hstore"
+
     ActiveRecord::Base.connection.create_table :people, force: true do |t|
       t.string   "first_name"
       t.string   "last_name"
+      t.json     "options"
+      t.jsonb    "prefs"
+      t.hstore   "settings"
       t.datetime "created_at"
       t.datetime "updated_at"
     end
@@ -130,6 +135,8 @@ namespace :db do
       t.datetime "created_at"
       t.datetime "updated_at"
     end
+
+    ActiveRecord::Base.connection.execute File.read(File.expand_path('../lib/generators/active_record/templates/jsonb_dasherize.sql', __FILE__))
 
     puts 'Database migrated'
   end

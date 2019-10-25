@@ -1,11 +1,12 @@
-require 'active_record'
-require 'action_controller'
+require 'rails/all'
 require 'rspec'
+require 'rspec/rails'
 require 'bourne'
 require 'database_cleaner'
 require 'active_model_serializers'
 require 'action_controller/serialization'
 require 'active_model_serializers_pg'
+require 'generator_spec'
 if ENV['TEST_UNPATCHED_AMS']
   ActiveModelSerializers.config.adapter = :json_api
 else
@@ -23,6 +24,17 @@ end
 
 require 'dotenv'
 Dotenv.load
+
+# Need this or Rails.application is nil just below:
+module TestApp
+  class Application < ::Rails::Application
+    config.root = File.dirname(__FILE__)
+  end
+end
+
+# Need this line or `hook_for` in our generators is ignored,
+# so our migration generator doesn't run:
+Rails.application.load_generators
 
 ActiveRecord::Base.establish_connection(ENV['DATABASE_URL'])
 
@@ -54,6 +66,10 @@ class PersonSerializer < ActiveModel::Serializer
       "last_name || ', ' || first_name"
     end
   end
+end
+
+class PersonWithJsonSerializer < ActiveModel::Serializer
+  attributes :id, :options, :prefs, :settings
 end
 
 class Note < ActiveRecord::Base

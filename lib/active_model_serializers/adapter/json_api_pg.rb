@@ -141,26 +141,8 @@ class JsonThing
     JsonThing.new(refl.klass, "#{full_name}.#{reflection_name}", nil, serializer_options, refl, self)
   end
 
-  # Gets the attributes (i.e. scalar fields) on the AR class
-  # as a Set of symbols.
-  # TODO: tests
-	def declared_attributes
-    @declared_attributes ||= Set.new(@ar_class.attribute_types.keys.map(&:to_sym))
-  end
-
   def enum?(field)
     @ar_class.attribute_types[field.to_s].is_a? ActiveRecord::Enum::EnumType
-  end
-
-  # Gets the reflections (aka associations) of the AR class
-  # as a Hash from symbol to a subclass of ActiveRecord::Reflection.
-  # TODO: tests
-  def declared_reflections
-    @declared_reflections ||= Hash[
-      @ar_class.reflections.map{|k, v|
-        [k.to_sym, v]
-      }
-    ]
   end
 
   # Checks for alias_attribute and gets to the real attribute name.
@@ -376,6 +358,15 @@ end
 class JsonApiPgSql
   attr_reader :base_serializer, :base_relation
 
+  def self.json_column_type
+    # These classes may not exist, depending on the Rails version:
+    @@json_column_type = if Rails::VERSION::STRING >= '5.2'
+                           'ActiveRecord::Type::Json'
+                         else
+                           'ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json'
+                         end.constantize
+  end
+
   def initialize(base_serializer, base_relation, instance_options, options)
     @base_relation = base_relation
     @instance_options = instance_options
@@ -452,7 +443,26 @@ class JsonApiPgSql
     elsif resource.has_sql_method?(field)
       resource.sql_method(field)
     else
-      %Q{"#{resource.table_name}"."#{resource.unaliased(field)}"}
+      field = resource.unaliased(field)
+      # Standard AMS dasherizes json/jsonb/hstore columns,
+      # so we have to do the same:
+      if ActiveModelSerializers.config.key_transform == :dash
+        case resource.ar_class.attribute_types[field.to_s]
+        when ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Hstore
+          # Fortunately we can cast hstore to jsonb,
+          # which gives us a solution that works whether or not the hstore extension is installed.
+          # Defining an hstore_dasherize function would work only if the extension were present.
+          %Q{jsonb_dasherize("#{resource.table_name}"."#{field}"::jsonb)}
+        when ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Jsonb
+          %Q{jsonb_dasherize("#{resource.table_name}"."#{field}")}
+        when self.class.json_column_type
+          %Q{jsonb_dasherize("#{resource.table_name}"."#{field}"::jsonb)}
+        else
+          %Q{"#{resource.table_name}"."#{field}"}
+        end
+      else
+        %Q{"#{resource.table_name}"."#{field}"}
+      end
     end
   end
 
