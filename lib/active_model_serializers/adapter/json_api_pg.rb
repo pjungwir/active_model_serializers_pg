@@ -77,7 +77,7 @@ module ActiveModelSerializers
       end
 
       def self.warn_about_collection_serializer
-          msg = "You are using an ordinary AMS CollectionSerializer with the json_api_pg adapter, which probably means Rails is pointlessly loading all your ActiveRecord instances *and* running the build JSON-building query in Postgres."
+          msg = "You are using an ordinary AMS CollectionSerializer with the json_api_pg adapter, which probably means Rails is pointlessly loading all your ActiveRecord instances *and* running the JSON-building query in Postgres."
           if Object.const_defined? 'Rails'
             Rails.logger.warn msg
           else
@@ -105,8 +105,8 @@ end
 # i.e. how you got here, not how you'd leave:
 # "Reflection" seems to be the internal ActiveRecord lingo
 # for a belongs_to or has_many relationship.
-# (The public documentation calls these "associations",
-# I think think older versions of Rails even used that internally,
+# (The public documentation calls these "associations".
+# I think older versions of Rails even used that internally,
 # but nowadays the method names use "reflection".)
 class JsonThing
   attr_reader :ar_class, :full_name, :name, :serializer, :serializer_options, :json_key, :json_type, :reflection, :parent, :cte_name, :jbs_name
@@ -192,7 +192,7 @@ class JsonThing
     end
   end
 
-  # Each thing has bother a `cte_foo` CTE and a `jbs_foo` CTE.
+  # Each thing has both a `cte_foo` CTE and a `jbs_foo` CTE.
   # (jbs stands for "JSONBs" and is meant to take 3 chars like `cte`.)
   # The former is just the relevant records,
   # and the second builds the JSON object for each record.
@@ -603,8 +603,6 @@ class JsonApiPgSql
 
   # See note in _jbs_name method for why we split each thing into two CTEs.
   def include_cte(resource)
-    # Sometimes options[:fields] has plural keys and sometimes singular,
-    # so try both:
     parent = resource.parent
     <<~EOQ
       SELECT  DISTINCT ON ("#{resource.table_name}"."#{resource.primary_key}")
