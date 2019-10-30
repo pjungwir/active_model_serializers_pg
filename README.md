@@ -59,8 +59,10 @@ Here are some other details we support:
 - `belongs_to`, `has_one`, and `has_many` associations.
 - If you serialize an `enum` you get the string values, not integers.
 - You can serialize an `alias`'d association.
+- You can serialize an `alias_attribute`'d column.
 - We preserve SQL ordering from a model's `default_scope`.
 - We preserve SQL ordering attached to an association.
+- When dasherizing we also dasherize json/jsonb/hstore contents (like standard AMS).
 
 ### Methods in Serializers and Models
 
