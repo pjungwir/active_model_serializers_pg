@@ -80,6 +80,9 @@ namespace :db do
       t.json     "options"
       t.jsonb    "prefs"
       t.hstore   "settings"
+      t.json     "selfies", array: true
+      t.jsonb    "portraits", array: true
+      t.hstore   "landscapes", array: true
       t.datetime "created_at"
       t.datetime "updated_at"
     end

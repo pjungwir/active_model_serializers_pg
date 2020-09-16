@@ -447,16 +447,22 @@ class JsonApiPgSql
       # Standard AMS dasherizes json/jsonb/hstore columns,
       # so we have to do the same:
       if ActiveModelSerializers.config.key_transform == :dash
-        case resource.ar_class.attribute_types[field.to_s]
-        when ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Hstore
+        cl = resource.ar_class.attribute_types[field.to_s]
+        if column_is_jsonb? cl
+          %Q{jsonb_dasherize("#{resource.table_name}"."#{field}")}
+        elsif column_is_jsonb_array? cl
+          # TODO: Could be faster:
+          # If we made the jsonb_dasherize function smarter so it could handle jsonb[],
+          # we wouldn't have to build a json object from the array then cast to jsonb[].
+          %Q{jsonb_dasherize(array_to_json("#{resource.table_name}"."#{field}")::jsonb)}
+        elsif column_is_castable_to_jsonb? cl
           # Fortunately we can cast hstore to jsonb,
           # which gives us a solution that works whether or not the hstore extension is installed.
           # Defining an hstore_dasherize function would work only if the extension were present.
           %Q{jsonb_dasherize("#{resource.table_name}"."#{field}"::jsonb)}
-        when ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Jsonb
-          %Q{jsonb_dasherize("#{resource.table_name}"."#{field}")}
-        when self.class.json_column_type
-          %Q{jsonb_dasherize("#{resource.table_name}"."#{field}"::jsonb)}
+        elsif column_is_castable_to_jsonb_array? cl
+          # TODO: Could be faster (see above):
+          %Q{jsonb_dasherize(array_to_json("#{resource.table_name}"."#{field}"::jsonb[])::jsonb)}
         else
           %Q{"#{resource.table_name}"."#{field}"}
         end
@@ -464,6 +470,25 @@ class JsonApiPgSql
         %Q{"#{resource.table_name}"."#{field}"}
       end
     end
+  end
+
+  def column_is_jsonb?(column_class)
+    column_class.is_a? ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Jsonb
+  end
+
+  def column_is_jsonb_array?(column_class)
+    column_class.is_a?(ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array) and
+      column_class.subtype.is_a?(ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Jsonb)
+  end
+
+  def column_is_castable_to_jsonb?(column_class)
+    column_class.is_a?(ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Hstore) or
+      column_class.is_a?(self.class.json_column_type)
+  end
+
+  def column_is_castable_to_jsonb_array?(column_class)
+    column_class.is_a?(ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array) and
+      column_is_castable_to_jsonb?(column_class.subtype)
   end
 
   def select_resource_relationship_links(resource, reflection)

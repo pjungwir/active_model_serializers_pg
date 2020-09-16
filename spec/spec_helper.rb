@@ -69,7 +69,13 @@ class PersonSerializer < ActiveModel::Serializer
 end
 
 class PersonWithJsonSerializer < ActiveModel::Serializer
-  attributes :id, :options, :prefs, :settings
+  attributes :id,
+    :options,     # json
+    :prefs,       # jsonb
+    :settings,    # hstore
+    :selfies,     # json[]
+    :portraits,   # jsonb[]
+    :landscapes   # hstore[]
 end
 
 class Note < ActiveRecord::Base
