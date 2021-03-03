@@ -119,7 +119,7 @@ To work on active\_model\_serializers\_pg locally, follow these steps:
  4. Run `bundle exec rake db:create`, this will create the test database.
  5. Run `bundle exec rake db:migrate`, this will set up the database tables required
     by the test.
- 6. Run `bundle exec rake test:all` to run tests against all supported versions of Active Record (currently 5.0.x, 5.1.x, 5.2.x).
+ 6. Run `bundle exec rake test:all` to run tests against all supported versions of Active Record (currently 5.0.x, 5.1.x, 5.2.x, 6.0.x).
     You can also say `BUNDLE_GEMFILE=gemfiles/Gemfile.activerecord-5.2.x bundle exec rspec spec` to run against a specific version (and select specific tests).
 
 Commands for building/releasing/installing:

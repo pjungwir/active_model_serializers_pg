@@ -151,7 +151,7 @@ namespace :test do
     # Escape current bundler environment
     Bundler.with_clean_env do
       # Currently only supports Active Record v5.0-v5.2
-      %w(5.0.x 5.1.x 5.2.x).each do |version|
+      %w(5.0.x 5.1.x 5.2.x 6.0.x).each do |version|
         sh "BUNDLE_GEMFILE='gemfiles/Gemfile.activerecord-#{version}' bundle install --quiet"
         sh "BUNDLE_GEMFILE='gemfiles/Gemfile.activerecord-#{version}' bundle exec rspec spec"
       end
