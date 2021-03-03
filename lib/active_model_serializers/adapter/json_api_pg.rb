@@ -545,7 +545,6 @@ class JsonApiPgSql
           # or from the class's default scope.
           # TODO: preserve the whole custom relation, not just ordering
           p = refl.ar_class.new
-          ordering = nil
           ordering = p.send(refl.name).arel.orders
           ordering = child_resource.ar_class.default_scoped.arel.orders if ordering.empty?
           ordering = ordering.map{|o|
