@@ -9,7 +9,7 @@ ret jsonb;
 BEGIN
   t := jsonb_typeof(j);
   IF t = 'object' THEN
-    SELECT  COALESCE(jsonb_object_agg(REPLACE(k, '_', '-'), jsonb_dasherize(v)), '{}')
+    SELECT  COALESCE(jsonb_object_agg(replace(lower(regexp_replace(k, '([A-Z])', '_\1', 'g')), '_', '-'), jsonb_dasherize(v)), '{}')
     INTO    ret
     FROM    jsonb_each(j) AS t(k, v);
     RETURN ret;

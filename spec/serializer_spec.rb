@@ -215,8 +215,8 @@ describe 'ArraySerializer' do
     let(:person)     {
       Person.create first_name: 'Test',
                     last_name: 'User',
-                    options:    { 'foo_foo': 'baz', bar: [{ 'jar_jar': 'binks' }] },
-                    prefs:      { 'foo_foo': 'baz', bar: [{ 'jar_jar': 'binks' }] },
+                    options:    { 'foo_foo': 'baz', barBar: [{ 'jar_jar': 'binks' }] },
+                    prefs:      { 'foo_foo': 'baz', barBar: [{ 'jar_jar': 'binks' }] },
                     settings:   { 'foo_foo': 'bar' },
                     selfies:    [ { 'photo_resolution': '200x200' } ],
                     portraits:  [ { 'photo_resolution': '150x200' } ],
@@ -241,11 +241,11 @@ describe 'ArraySerializer' do
             type: 'people',
             attributes: {
               prefs: {
-                bar: [{ 'jar-jar' => 'binks'}],
+                'bar-bar': [{ 'jar-jar' => 'binks'}],
                 'foo-foo' => 'baz',
               },
               options: {
-                bar: [{ 'jar-jar' => 'binks'}],
+                'bar-bar': [{ 'jar-jar' => 'binks'}],
                 'foo-foo' => 'baz',
               },
               selfies: [
