@@ -173,6 +173,20 @@ class JsonThing
     (@sql_methods[field] ||= _sql_method(field))[0]
   end
 
+  # Returns the primary key column as a string,
+  # but if there is a "#{primary_key}__sql" method,
+  # then call that and return it instead.
+  # We use this for the id reported in the jsonapi output,
+  # but not for foreign key relationships.
+  def primary_key_attr
+    pk = primary_key
+    if has_sql_method?(pk)
+      sql_method(pk)
+    else
+      pk
+    end
+  end
+
   private
 
   # This needs to be globally unique within the SQL query,
@@ -494,7 +508,7 @@ class JsonApiPgSql
   def select_resource_relationship_links(resource, reflection)
     reflection.links.map {|link_name, link_parts|
       <<~EOQ
-        '#{link_name}', CONCAT(#{link_parts.join(%Q{, "#{resource.parent.table_name}"."#{resource.parent.primary_key}", })})
+        '#{link_name}', CONCAT(#{link_parts.join(%Q{, "#{resource.parent.table_name}"."#{resource.parent.primary_key_attr}", })})
       EOQ
     }.join(",\n")
   end
@@ -561,7 +575,7 @@ class JsonApiPgSql
           ordering = "ORDER BY #{ordering}" if ordering
           <<~EOQ
             LEFT OUTER JOIN LATERAL (
-              SELECT  coalesce(jsonb_agg(jsonb_build_object('id', rel."#{child_resource.primary_key}"::text,
+              SELECT  coalesce(jsonb_agg(jsonb_build_object('id', rel."#{child_resource.primary_key_attr}"::text,
                                                             'type', '#{child_resource.json_type}') #{ordering}), '[]') AS j
               FROM    "#{child_resource.table_name}" rel
               WHERE   rel."#{child_resource.foreign_key}" = "#{resource.table_name}"."#{resource.primary_key}"
@@ -574,7 +588,7 @@ class JsonApiPgSql
           when ActiveRecord::Relation
             rel = refl.reflection_sql
             sql = rel.select(<<~EOQ).to_sql
-              coalesce(jsonb_agg(jsonb_build_object('id', "#{child_resource.table_name}"."#{child_resource.primary_key}"::text,
+              coalesce(jsonb_agg(jsonb_build_object('id', "#{child_resource.table_name}"."#{child_resource.primary_key_attr}"::text,
                                                     'type', '#{child_resource.json_type}')), '[]') AS j
             EOQ
             <<~EOQ
@@ -587,7 +601,7 @@ class JsonApiPgSql
       elsif refl.has_one?
         <<~EOQ
           LEFT OUTER JOIN LATERAL (
-            SELECT  jsonb_build_object('id', rel."#{child_resource.primary_key}"::text,
+            SELECT  jsonb_build_object('id', rel."#{child_resource.primary_key_attr}"::text,
                                       'type', '#{child_resource.json_type}') AS j
             FROM    "#{child_resource.table_name}" rel
             WHERE   rel."#{child_resource.foreign_key}" = "#{resource.table_name}"."#{resource.primary_key}"
@@ -703,7 +717,7 @@ class JsonApiPgSql
   def select_resource(resource)
     fields = fields_for(resource)
     <<~EOQ
-      jsonb_build_object('id', "#{resource.table_name}"."#{resource.primary_key}"::text,
+      jsonb_build_object('id', "#{resource.table_name}"."#{resource.primary_key_attr}"::text,
                          'type', '#{resource.json_type}',
                          'attributes', #{select_resource_attributes(resource)}
                          #{maybe_select_resource_relationships(resource)})
